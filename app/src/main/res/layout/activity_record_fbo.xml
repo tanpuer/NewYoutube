@@ -99,12 +99,12 @@
             android:onClick="onRadioButtonClicked"
             android:text="@string/recDrawTwice" />
 
-        <RadioButton
-            android:id="@+id/recFbo_radio"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="onRadioButtonClicked"
-            android:text="@string/recOffscreen" />
+        <!--<RadioButton-->
+            <!--android:id="@+id/recFbo_radio"-->
+            <!--android:layout_width="wrap_content"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:onClick="onRadioButtonClicked"-->
+            <!--android:text="@string/recOffscreen" />-->
 
         <RadioButton
             android:id="@+id/recFramebuffer_radio"

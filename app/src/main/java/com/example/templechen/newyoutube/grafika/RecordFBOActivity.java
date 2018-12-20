@@ -419,9 +419,9 @@ public class RecordFBOActivity extends BaseActivity implements TextureView.Surfa
             case R.id.recDrawTwice_radio:
                 mSelectedRecordMethod = RECMETHOD_DRAW_TWICE;
                 break;
-            case R.id.recFbo_radio:
-                mSelectedRecordMethod = RECMETHOD_FBO;
-                break;
+//            case R.id.recFbo_radio:
+//                mSelectedRecordMethod = RECMETHOD_FBO;
+//                break;
             case R.id.recFramebuffer_radio:
                 mSelectedRecordMethod = RECMETHOD_BLIT_FRAMEBUFFER;
                 break;
@@ -448,8 +448,8 @@ public class RecordFBOActivity extends BaseActivity implements TextureView.Surfa
         RadioButton rb;
         rb = (RadioButton) findViewById(R.id.recDrawTwice_radio);
         rb.setChecked(mSelectedRecordMethod == RECMETHOD_DRAW_TWICE);
-        rb = (RadioButton) findViewById(R.id.recFbo_radio);
-        rb.setChecked(mSelectedRecordMethod == RECMETHOD_FBO);
+//        rb = (RadioButton) findViewById(R.id.recFbo_radio);
+//        rb.setChecked(mSelectedRecordMethod == RECMETHOD_FBO);
         rb = (RadioButton) findViewById(R.id.recFramebuffer_radio);
         rb.setChecked(mSelectedRecordMethod == RECMETHOD_BLIT_FRAMEBUFFER);
         rb.setEnabled(mBlitFramebufferAllowed);

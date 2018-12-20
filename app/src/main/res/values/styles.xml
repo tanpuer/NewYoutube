@@ -1,0 +1,24 @@
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:windowContentTransitions">true</item>
+        <item name="android:windowSharedElementExitTransition">@transition/shared_photo</item>
+        <item name="android:windowSharedElementEnterTransition">@transition/shared_photo</item>
+    </style>
+    
+    <declare-styleable name="PlayTextureView">
+        <attr name="scale_type" format="integer"/>
+        <attr name="align_mode" format="integer"/>
+    </declare-styleable>
+
+    <declare-styleable name="PlayVideoView">
+        <!--<attr name="scale_type" format="integer"/>-->
+        <!--<attr name="align_mode" format="integer"/>-->
+    </declare-styleable>
+
+</resources>

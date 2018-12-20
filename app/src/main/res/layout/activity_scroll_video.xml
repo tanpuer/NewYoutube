@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <com.example.templechen.newyoutube.video.PlayTextureView
+            android:id="@+id/play_texture_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:scale_type="1"
+    >
+    </com.example.templechen.newyoutube.video.PlayTextureView>
+
+    <Button
+            android:id="@+id/record_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="click to record"
+            android:textAllCaps="false"
+            android:background="#88ffffff"
+    />
+
+</FrameLayout>

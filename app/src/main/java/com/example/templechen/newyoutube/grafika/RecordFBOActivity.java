@@ -112,7 +112,7 @@ public class RecordFBOActivity extends BaseActivity implements TextureView.Surfa
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_record_fbo);
 
-        mSelectedRecordMethod = RECMETHOD_FBO;
+        mSelectedRecordMethod = RECMETHOD_DRAW_TWICE;
         updateControls();
 
         textureView = findViewById(R.id.fboActivity_textureview);

@@ -30,6 +30,7 @@ import android.widget.RadioButton;
 import android.widget.TextView;
 import android.app.Activity;
 import android.graphics.Rect;
+import com.bumptech.glide.load.MultiTransformation;
 import com.example.templechen.newyoutube.R;
 import com.example.templechen.newyoutube.base.BaseActivity;
 import com.example.templechen.newyoutube.gl.GLUtils;
@@ -149,25 +150,40 @@ public class RecordFBOActivity extends BaseActivity implements TextureView.Surfa
         updateControls();
     }
 
+    private float previousX = 0f;
+    private float previousY = 0f;
+    private float deltaX = 0f;
+    private float deltaY = 0f;
+
+    private float maxDeltaX;
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN: {
-                startX = event.getX();
-                startY = event.getY();
+                maxDeltaX = (mMediaPlayerTool.getVideoWidth() / mMediaPlayerTool.getVideoHeight() * textureView.getHeight() - textureView.getWidth());
+                previousX = event.getX();
+                previousY = event.getY();
                 break;
             }
             case MotionEvent.ACTION_MOVE: {
-                float endX = event.getX();
-                float endY = event.getY();
 
-                doTransForm(endX - startX, endY - startY);
+                deltaX += event.getX() - previousX;
 
-                startX = endX;
-                startY = endY;
+                if (deltaX > maxDeltaX) {
+                    deltaX = maxDeltaX;
+                }else if (deltaX < -maxDeltaX) {
+                    deltaX = -maxDeltaX;
+                }
+//                deltaY = event.getY() - previousY;
+                previousX = event.getX();
+                previousY = event.getY();
+
                 break;
             }
             case MotionEvent.ACTION_UP: {
+                previousX = 0f;
+                previousY = 0f;
                 break;
             }
             default:
@@ -175,6 +191,33 @@ public class RecordFBOActivity extends BaseActivity implements TextureView.Surfa
         }
         return false;
     }
+
+//    @Override
+//    public boolean onTouchEvent(MotionEvent event) {
+//        switch (event.getAction()) {
+//            case MotionEvent.ACTION_DOWN: {
+//                startX = event.getX();
+//                startY = event.getY();
+//                break;
+//            }
+//            case MotionEvent.ACTION_MOVE: {
+//                float endX = event.getX();
+//                float endY = event.getY();
+//
+//                doTransForm(endX - startX, endY - startY);
+//
+//                startX = endX;
+//                startY = endY;
+//                break;
+//            }
+//            case MotionEvent.ACTION_UP: {
+//                break;
+//            }
+//            default:
+//                break;
+//        }
+//        return false;
+//    }
 
     private float startX = 0f;
     private float startY = 0f;
@@ -490,7 +533,7 @@ public class RecordFBOActivity extends BaseActivity implements TextureView.Surfa
      * <p>
      * Start the render thread after the Surface has been created.
      */
-    private static class RenderThread extends Thread {
+    private class RenderThread extends Thread {
         // Object must be created on render thread to get correct Looper, but is used from
         // UI thread, so we need to declare it volatile to ensure the UI thread sees a fully
         // constructed object.
@@ -684,7 +727,7 @@ public class RecordFBOActivity extends BaseActivity implements TextureView.Surfa
                 public void onVideoStart() {
                     int width = mMediaPlayerTool.getVideoWidth();
                     int height = mMediaPlayerTool.getVideoHeight();
-                    mAutoResizeTextureView.setSize(width, height);
+//                    mAutoResizeTextureView.setSize(width, height);
                     mMediaPlayerTool.start();
                 }
 
@@ -927,8 +970,10 @@ public class RecordFBOActivity extends BaseActivity implements TextureView.Surfa
             // explode if given "strange" dimensions, e.g. a width that is not a multiple
             // of 16.  We can box it as needed to preserve dimensions.
             final int BIT_RATE = 4000000;   // 4Mbps
-            final int VIDEO_WIDTH = 1280;
-            final int VIDEO_HEIGHT = 720;
+//            final int VIDEO_WIDTH = 1280;
+            final int VIDEO_WIDTH = textureView.getWidth();
+//            final int VIDEO_HEIGHT = 720;
+            final int VIDEO_HEIGHT = textureView.getHeight();
             int windowWidth = mWindowSurface.getWidth();
             int windowHeight = mWindowSurface.getHeight();
             float windowAspect = (float) windowHeight / (float) windowWidth;
@@ -1223,6 +1268,15 @@ public class RecordFBOActivity extends BaseActivity implements TextureView.Surfa
             GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
 
             mSurfaceTexture.getTransformMatrix(mDisplayProjectionMatrix);
+
+//            Matrix.translateM(mDisplayProjectionMatrix, 0, 0.1f, 0f, 0f);
+            if (mMediaPlayerTool != null && mMediaPlayerTool.getVideoHeight() != 0 && mMediaPlayerTool.getVideoWidth() != 0) {
+                float sx = textureView.getWidth() *1.0f /(mMediaPlayerTool.getVideoWidth()  * 1.0f /mMediaPlayerTool.getVideoHeight() * textureView.getHeight());
+                float tx = (mMediaPlayerTool.getVideoWidth()  * 1.0f /mMediaPlayerTool.getVideoHeight() * textureView.getHeight() - textureView.getWidth())/2.0f/textureView.getWidth();
+                Matrix.scaleM(mDisplayProjectionMatrix, 0, sx, 1f, 1f);
+                Matrix.translateM(mDisplayProjectionMatrix, 0, tx, 0f, 0f);
+                Matrix.translateM(mDisplayProjectionMatrix, 0, -deltaX/1000, deltaY/100, 0f);
+            }
             mSurfaceTexture.updateTexImage();
             mProgram.setTransformMatrix(mDisplayProjectionMatrix);
             mProgram.drawFrame();

@@ -23,11 +23,8 @@ import android.opengl.GLES30;
 import android.opengl.Matrix;
 import android.os.*;
 import android.util.Log;
-import android.view.Choreographer;
-import android.view.Surface;
-import android.view.SurfaceHolder;
-import android.view.SurfaceView;
-import android.view.View;
+import android.util.Size;
+import android.view.*;
 import android.widget.Button;
 import android.widget.RadioButton;
 import android.widget.TextView;
@@ -37,6 +34,7 @@ import com.example.templechen.newyoutube.R;
 import com.example.templechen.newyoutube.base.BaseActivity;
 import com.example.templechen.newyoutube.gl.GLUtils;
 import com.example.templechen.newyoutube.grafika.gles.*;
+import com.example.templechen.newyoutube.video.AutoResizeTextureView;
 import com.example.templechen.newyoutube.video.MediaPlayerTool;
 
 
@@ -89,7 +87,7 @@ import java.lang.ref.WeakReference;
  * <p>
  * TODO: show the MP4 file name somewhere in the UI so people can find it in the player
  */
-public class RecordFBOActivity extends BaseActivity implements SurfaceHolder.Callback,
+public class RecordFBOActivity extends BaseActivity implements TextureView.SurfaceTextureListener,
         Choreographer.FrameCallback {
     private static final String TAG = "RecordFBOActivity";
 
@@ -106,6 +104,8 @@ public class RecordFBOActivity extends BaseActivity implements SurfaceHolder.Cal
 
     private RenderThread mRenderThread;
 
+    private AutoResizeTextureView textureView;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -114,8 +114,9 @@ public class RecordFBOActivity extends BaseActivity implements SurfaceHolder.Cal
         mSelectedRecordMethod = RECMETHOD_FBO;
         updateControls();
 
-        SurfaceView sv = (SurfaceView) findViewById(R.id.fboActivity_surfaceView);
-        sv.getHolder().addCallback(this);
+        textureView = findViewById(R.id.fboActivity_textureview);
+        textureView.setSurfaceTextureListener(this);
+        textureView.setmScaleType(AutoResizeTextureView.SCALE_TYPE_CENTER_CROP);
 
         Log.d(TAG, "RecordFBOActivity: onCreate done");
     }
@@ -149,15 +150,88 @@ public class RecordFBOActivity extends BaseActivity implements SurfaceHolder.Cal
     }
 
     @Override
-    public void surfaceCreated(SurfaceHolder holder) {
-        Log.d(TAG, "surfaceCreated holder=" + holder);
+    public boolean onTouchEvent(MotionEvent event) {
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN: {
+                startX = event.getX();
+                startY = event.getY();
+                break;
+            }
+            case MotionEvent.ACTION_MOVE: {
+                float endX = event.getX();
+                float endY = event.getY();
 
+                doTransForm(endX - startX, endY - startY);
+
+                startX = endX;
+                startY = endY;
+                break;
+            }
+            case MotionEvent.ACTION_UP: {
+                break;
+            }
+            default:
+                break;
+        }
+        return false;
+    }
+
+    private float startX = 0f;
+    private float startY = 0f;
+    private float widthPivot = 0f;
+    private float heightPivot = 0f;
+    private boolean initPivot = false;
+    private void doTransForm(float deltaX, float delatY) {
+        Size viewSize = new Size(textureView.getWidth(), textureView.getHeight());
+        Size videoSize = new Size(mMediaPlayerTool.getVideoWidth(), mMediaPlayerTool.getVideoHeight());
+        if (!initPivot) {
+            widthPivot = textureView.getWidth()/2;
+            heightPivot = textureView.getHeight()/2;
+            initPivot = true;
+        }
+        android.graphics.Matrix matrix = getCenterCropMatrix(viewSize, videoSize, deltaX, delatY);
+        textureView.setTransform(matrix);
+        Log.d(TAG, "doTransForm: " + widthPivot + ", " + heightPivot);
+    }
+
+    private android.graphics.Matrix getCenterCropMatrix(Size viewSize, Size videoSize, float deltaX, float deltaY) {
+        float sx = (float) viewSize.getWidth() / videoSize.getWidth();
+        float sy = (float) viewSize.getHeight() / videoSize.getHeight();
+        float maxScale = Math.max(sx, sy);
+        sx = maxScale / sx;
+        sy = maxScale / sy;
+        widthPivot = widthPivot - deltaX;
+        heightPivot = heightPivot + deltaY;
+        if (widthPivot > videoSize.getWidth()) {
+            widthPivot = videoSize.getWidth();
+        }else if (widthPivot <0){
+            widthPivot = 0;
+        }
+
+        if (heightPivot > videoSize.getHeight()) {
+            heightPivot = videoSize.getHeight();
+        }else if (heightPivot < 0){
+            heightPivot = 0;
+        }
+
+        return getMatrix(sx, sy, widthPivot, heightPivot);
+    }
+
+    private android.graphics.Matrix getMatrix(float sx, float sy, float px, float py) {
+        android.graphics.Matrix matrix = new android.graphics.Matrix();
+        matrix.setScale(sx, sy, px, py);
+        return matrix;
+    }
+
+    @Override
+    public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
         File outputFile = new File(Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_PICTURES) + "/grafika", "Screen-record-" +
                 Long.toHexString(System.currentTimeMillis()) + ".mp4");
-        SurfaceView sv = (SurfaceView) findViewById(R.id.fboActivity_surfaceView);
-        mRenderThread = new RenderThread(this, sv.getHolder(), new ActivityHandler(this), outputFile,
-                MiscUtils.getDisplayRefreshNsec(this));
+        TextureView sv = (TextureView) findViewById(R.id.fboActivity_textureview);
+        mMediaPlayerTool = MediaPlayerTool.getInstance();
+        mRenderThread = new RenderThread(this, surface, new ActivityHandler(this), outputFile,
+                MiscUtils.getDisplayRefreshNsec(this), textureView, mMediaPlayerTool);
         mRenderThread.setName("RecordFBO GL render");
         mRenderThread.start();
         mRenderThread.waitUntilReady();
@@ -173,18 +247,16 @@ public class RecordFBOActivity extends BaseActivity implements SurfaceHolder.Cal
     }
 
     @Override
-    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-        Log.d(TAG, "surfaceChanged fmt=" + format + " size=" + width + "x" + height +
-                " holder=" + holder);
+    public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
         RenderHandler rh = mRenderThread.getHandler();
         if (rh != null) {
-            rh.sendSurfaceChanged(format, width, height);
+            //ignore forma
+            rh.sendSurfaceChanged(0, width, height);
         }
     }
 
     @Override
-    public void surfaceDestroyed(SurfaceHolder holder) {
-        Log.d(TAG, "surfaceDestroyed holder=" + holder);
+    public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
 
         // We need to wait for the render thread to shut down before continuing because we
         // don't want the Surface to disappear out from under it mid-render.  The frame
@@ -211,7 +283,28 @@ public class RecordFBOActivity extends BaseActivity implements SurfaceHolder.Cal
         // call on doFrame().
         Choreographer.getInstance().removeFrameCallback(this);
         Log.d(TAG, "surfaceDestroyed complete");
+        return false;
     }
+
+    @Override
+    public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+
+    }
+
+//    @Override
+//    public void surfaceCreated(SurfaceHolder holder) {
+//
+//    }
+//
+//    @Override
+//    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+//
+//    }
+//
+//    @Override
+//    public void surfaceDestroyed(SurfaceHolder holder) {
+//
+//    }
 
     /*
      * Choreographer callback, called near vsync.
@@ -461,15 +554,19 @@ public class RecordFBOActivity extends BaseActivity implements SurfaceHolder.Cal
         private int mOESTextureId;
         private MediaPlayerTool mMediaPlayerTool;
         private SurfaceTexture mSurfaceTexture;
+        private AutoResizeTextureView mAutoResizeTextureView;
 
 
         /**
          * Pass in the SurfaceView's SurfaceHolder.  Note the Surface may not yet exist.
          */
-        public RenderThread(Context context, SurfaceHolder holder, ActivityHandler ahandler, File outputFile,
-                            long refreshPeriodNs) {
+        public RenderThread(Context context, SurfaceTexture surfaceTexture, ActivityHandler ahandler, File outputFile,
+                            long refreshPeriodNs, AutoResizeTextureView autoResizeTextureView, MediaPlayerTool mediaPlayerTool) {
+            mMediaPlayerTool = mediaPlayerTool;
+            mAutoResizeTextureView = autoResizeTextureView;
             mContext = context;
-            mSurfaceHolder = holder;
+//            mSurfaceHolder = holder;
+            mSurfaceTexture = surfaceTexture;
             mActivityHandler = ahandler;
             mOutputFile = outputFile;
             mRefreshPeriodNanos = refreshPeriodNs;
@@ -551,7 +648,7 @@ public class RecordFBOActivity extends BaseActivity implements SurfaceHolder.Cal
          * Prepares the surface.
          */
         private void surfaceCreated() {
-            Surface surface = mSurfaceHolder.getSurface();
+            Surface surface = new Surface(mSurfaceTexture);
             prepareGl(surface);
         }
 
@@ -585,9 +682,9 @@ public class RecordFBOActivity extends BaseActivity implements SurfaceHolder.Cal
             mMediaPlayerTool.setVideoListener(new MediaPlayerTool.IVideoListener() {
                 @Override
                 public void onVideoStart() {
-//                    int width = mMediaPlayerTool.getVideoWidth();
-//                    int height = mMediaPlayerTool.getVideoHeight();
-//                    mPlayTextureView.setSize(width, height);
+                    int width = mMediaPlayerTool.getVideoWidth();
+                    int height = mMediaPlayerTool.getVideoHeight();
+                    mAutoResizeTextureView.setSize(width, height);
                     mMediaPlayerTool.start();
                 }
 

@@ -36,8 +36,8 @@ public class VideoTextureProgram {
         mOESTextureId = OESTextureId;
         floatBuffer = GLUtils.createBuffer(GLUtils.vertexData);
 
-        vertexShader = GLUtils.loadShader(GL_VERTEX_SHADER, GLUtils.readShaderFromResource(context,R.raw.gray_vertex_shader));
-        fragmentShader = GLUtils.loadShader(GL_FRAGMENT_SHADER, GLUtils.readShaderFromResource(context,R.raw.gray_fragment_shader));
+        vertexShader = GLUtils.loadShader(GL_VERTEX_SHADER, GLUtils.readShaderFromResource(context,R.raw.base_vertex_shader));
+        fragmentShader = GLUtils.loadShader(GL_FRAGMENT_SHADER, GLUtils.readShaderFromResource(context,R.raw.base_fragment_shader));
         mProgram = GLUtils.createProgram(vertexShader, fragmentShader);
     }
 
